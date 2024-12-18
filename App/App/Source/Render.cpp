@@ -75,91 +75,125 @@ void Render::CleanupDevice()
     }
 }
 
-void Render::Loop()
-{
-    const wchar_t* className = L"AppWindowClass";
-    const WNDCLASSEXW wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, className, nullptr };
-    RegisterClassExW(&wc);
+void Render::Loop() {
+	const wchar_t* className = L"AppWindowClass";
+	const WNDCLASSEXW wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, className, nullptr };
+	RegisterClassExW(&wc);
 
-    const wchar_t* windowName = L"AppWindow";
-    Data::MainWindow = CreateWindowW(wc.lpszClassName, windowName, WS_OVERLAPPEDWINDOW, 100, 100, 50, 50, NULL, NULL, wc.hInstance, NULL);
+	const wchar_t* windowName = L"AppWindow";
+	Data::MainWindow = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, windowName, WS_OVERLAPPEDWINDOW, 100, 100, 50, 50, NULL, NULL, wc.hInstance, NULL);
 
-    if (!CreateDevice())
-    {
-        CleanupDevice();
-        UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        MessageBoxW(nullptr, L"Failed to create device!", L"Fatal error", MB_ICONERROR);
-        return;
-    }
+	if (!CreateDevice()) {
+		CleanupDevice();
+		UnregisterClassW(wc.lpszClassName, wc.hInstance);
+		MessageBoxW(nullptr, L"Failed to create device!", L"Fatal error", MB_ICONERROR);
+		return;
+	}
 
-    ShowWindow(Data::MainWindow, SW_HIDE);
-    UpdateWindow(Data::MainWindow);
+	ShowWindow(Data::MainWindow, SW_HIDE);
+	UpdateWindow(Data::MainWindow);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+	io.ConfigViewportsNoAutoMerge = true;
+	io.ConfigViewportsNoTaskBarIcon = false;
+	io.ConfigViewportsNoDefaultParent = true;
 
-    ImGui::StyleColorsDark();
-    Style::Apply();
+	ImGui::StyleColorsDark();
+	Style::Apply();
 
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        // Not supported with viewports
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
 
-    const HMONITOR monitor = MonitorFromWindow(Data::MainWindow, MONITOR_DEFAULTTONEAREST);
-    MONITORINFO info = {};
-    info.cbSize = sizeof(MONITORINFO);
-    GetMonitorInfoW(monitor, &info);
+	const HMONITOR monitor = MonitorFromWindow(Data::MainWindow, MONITOR_DEFAULTTONEAREST);
+	MONITORINFO info = {};
+	info.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfoW(monitor, &info);
 
-    io.IniFilename = nullptr;
-    io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\segoeui.ttf)", 17);
+	io.IniFilename = nullptr;
+	io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\segoeui.ttf)", 17);
 
-    ImGui_ImplWin32_Init(Data::MainWindow);
-    ImGui_ImplDX11_Init(Data::Device, Data::DeviceContext);
+	ImGui_ImplWin32_Init(Data::MainWindow);
+	ImGui_ImplDX11_Init(Data::Device, Data::DeviceContext);
 
-    Manager::InitDefault();
+	Manager::InitDefault();
 
-    while (!Global::ShouldExit)
-    {
-        MSG msg;
-        while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-            if (msg.message == WM_QUIT)
-                Global::ShouldExit = true;
-        }
+	if (ImGui::GetMainViewport() && ImGui::GetMainViewport()->PlatformHandle)
+	{
+		HWND viewportHwnd = (HWND)ImGui::GetMainViewport()->PlatformHandle;
+		LONG_PTR style = GetWindowLongPtr(viewportHwnd, GWL_STYLE);
+		LONG_PTR exStyle = GetWindowLongPtr(viewportHwnd, GWL_EXSTYLE);
 
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
+		style |= WS_OVERLAPPEDWINDOW;
+		exStyle |= WS_EX_APPWINDOW;
+		exStyle &= ~WS_EX_TOOLWINDOW;
 
-        Manager::Render();
+		SetWindowLongPtr(viewportHwnd, GWL_STYLE, style);
+		SetWindowLongPtr(viewportHwnd, GWL_EXSTYLE, exStyle);
 
-        ImGui::EndFrame();
-        ImGui::Render();
+		SetWindowPos(viewportHwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	}
 
-        const ImVec4 clearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
-        const float clearColorWithAlpha[4] = { clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w };
-        Data::DeviceContext->OMSetRenderTargets(1, &Data::RenderTargetView, nullptr);
-        Data::DeviceContext->ClearRenderTargetView(Data::RenderTargetView, clearColorWithAlpha);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	while (!Global::ShouldExit) {
+		MSG msg;
+		while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+				Global::ShouldExit = true;
+		}
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
 
-        Data::SwapChain->Present(1, 0);
-    }
+		Manager::Render();
+
+		ImGui::EndFrame();
+		ImGui::Render();
+
+		const ImVec4 clearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
+		const float clearColorWithAlpha[4] = { clearColor.x * clearColor.w, clearColor.y * clearColor.w,clearColor.z * clearColor.w,clearColor.w };
+		Data::DeviceContext->OMSetRenderTargets(1, &Data::RenderTargetView, nullptr);
+		Data::DeviceContext->ClearRenderTargetView(Data::RenderTargetView, clearColorWithAlpha);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+
+			if (ImGui::GetMainViewport() && ImGui::GetMainViewport()->PlatformHandle) {
+				HWND viewportHwnd = (HWND)ImGui::GetMainViewport()->PlatformHandle;
+				LONG_PTR exStyle = GetWindowLongPtr(viewportHwnd, GWL_EXSTYLE);
+				if (!(exStyle & WS_EX_APPWINDOW))
+				{
+					exStyle |= WS_EX_APPWINDOW;
+					SetWindowLongPtr(viewportHwnd, GWL_EXSTYLE, exStyle);
+					SetWindowPos(viewportHwnd, NULL, 0, 0, 0, 0,
+						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+				}
+			}
+		}
+
+		Data::SwapChain->Present(1, 0);
+	}
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	CleanupDevice();
+	DestroyWindow(Data::MainWindow);
+	UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
+
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI Render::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
