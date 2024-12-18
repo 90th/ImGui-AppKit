@@ -125,22 +125,6 @@ void Render::Loop() {
 
 	Manager::InitDefault();
 
-	if (ImGui::GetMainViewport() && ImGui::GetMainViewport()->PlatformHandle)
-	{
-		HWND viewportHwnd = (HWND)ImGui::GetMainViewport()->PlatformHandle;
-		LONG_PTR style = GetWindowLongPtr(viewportHwnd, GWL_STYLE);
-		LONG_PTR exStyle = GetWindowLongPtr(viewportHwnd, GWL_EXSTYLE);
-
-		style |= WS_OVERLAPPEDWINDOW;
-		exStyle |= WS_EX_APPWINDOW;
-		exStyle &= ~WS_EX_TOOLWINDOW;
-
-		SetWindowLongPtr(viewportHwnd, GWL_STYLE, style);
-		SetWindowLongPtr(viewportHwnd, GWL_EXSTYLE, exStyle);
-
-		SetWindowPos(viewportHwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-	}
-
 	while (!Global::ShouldExit) {
 		MSG msg;
 		while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
@@ -168,18 +152,6 @@ void Render::Loop() {
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
-
-			if (ImGui::GetMainViewport() && ImGui::GetMainViewport()->PlatformHandle) {
-				HWND viewportHwnd = (HWND)ImGui::GetMainViewport()->PlatformHandle;
-				LONG_PTR exStyle = GetWindowLongPtr(viewportHwnd, GWL_EXSTYLE);
-				if (!(exStyle & WS_EX_APPWINDOW))
-				{
-					exStyle |= WS_EX_APPWINDOW;
-					SetWindowLongPtr(viewportHwnd, GWL_EXSTYLE, exStyle);
-					SetWindowPos(viewportHwnd, NULL, 0, 0, 0, 0,
-						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-				}
-			}
 		}
 
 		Data::SwapChain->Present(1, 0);
