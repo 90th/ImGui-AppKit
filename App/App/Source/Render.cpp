@@ -81,7 +81,7 @@ void Render::Loop() {
 	RegisterClassExW(&wc);
 
 	const wchar_t* windowName = L"AppWindow";
-	Data::MainWindow = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, windowName, WS_OVERLAPPEDWINDOW, 100, 100, 50, 50, NULL, NULL, wc.hInstance, NULL);
+	Data::MainWindow = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, windowName, WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, NULL, NULL, wc.hInstance, NULL);
 
 	if (!CreateDevice()) {
 		CleanupDevice();
