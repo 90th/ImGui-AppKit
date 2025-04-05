@@ -2,77 +2,76 @@
 
 bool Render::CreateRenderTarget()
 {
-    ID3D11Texture2D* backBuffer;
-    Data::SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-    if (backBuffer != nullptr)
-    {
-        const HRESULT status = Data::Device->CreateRenderTargetView(backBuffer, nullptr, &Data::RenderTargetView);
-        backBuffer->Release();
-        return status == S_OK;
-    }
-
-    return false;
+	ID3D11Texture2D* backBuffer;
+	Data::SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+	if (backBuffer != nullptr)
+	{
+		const HRESULT status = Data::Device->CreateRenderTargetView(backBuffer, nullptr, &Data::RenderTargetView);
+		backBuffer->Release();
+		return status == S_OK;
+	}
+	return false;
 }
 
 bool Render::CreateDevice()
 {
-    DXGI_SWAP_CHAIN_DESC swapChainDescriptor;
-    ZeroMemory(&swapChainDescriptor, sizeof(swapChainDescriptor));
+	DXGI_SWAP_CHAIN_DESC swapChainDescriptor;
+	ZeroMemory(&swapChainDescriptor, sizeof(swapChainDescriptor));
 
-    swapChainDescriptor.BufferCount = 2;
-    swapChainDescriptor.BufferDesc.Width = 0;
-    swapChainDescriptor.BufferDesc.Height = 0;
-    swapChainDescriptor.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDescriptor.BufferDesc.RefreshRate.Numerator = 60;
-    swapChainDescriptor.BufferDesc.RefreshRate.Denominator = 1;
-    swapChainDescriptor.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    swapChainDescriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDescriptor.OutputWindow = Data::MainWindow;
-    swapChainDescriptor.SampleDesc.Count = 1;
-    swapChainDescriptor.SampleDesc.Quality = 0;
-    swapChainDescriptor.Windowed = TRUE;
-    swapChainDescriptor.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	swapChainDescriptor.BufferCount = 2;
+	swapChainDescriptor.BufferDesc.Width = 0;
+	swapChainDescriptor.BufferDesc.Height = 0;
+	swapChainDescriptor.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDescriptor.BufferDesc.RefreshRate.Numerator = 60;
+	swapChainDescriptor.BufferDesc.RefreshRate.Denominator = 1;
+	swapChainDescriptor.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	swapChainDescriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDescriptor.OutputWindow = Data::MainWindow;
+	swapChainDescriptor.SampleDesc.Count = 1;
+	swapChainDescriptor.SampleDesc.Quality = 0;
+	swapChainDescriptor.Windowed = TRUE;
+	swapChainDescriptor.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-    constexpr UINT createDeviceFlags = 0;
+	constexpr UINT createDeviceFlags = 0;
 
-    D3D_FEATURE_LEVEL featureLevel;
-    constexpr D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0 };
-    if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &swapChainDescriptor, &Data::SwapChain, &Data::Device, &featureLevel, &Data::DeviceContext) != S_OK)
-        return false;
+	D3D_FEATURE_LEVEL featureLevel;
+	constexpr D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0 };
+	if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &swapChainDescriptor, &Data::SwapChain, &Data::Device, &featureLevel, &Data::DeviceContext) != S_OK)
+		return false;
 
-    return CreateRenderTarget();
+	return CreateRenderTarget();
 }
 
 void Render::CleanupRenderTarget()
 {
-    if (Data::RenderTargetView)
-    {
-        Data::RenderTargetView->Release();
-        Data::RenderTargetView = nullptr;
-    }
+	if (Data::RenderTargetView)
+	{
+		Data::RenderTargetView->Release();
+		Data::RenderTargetView = nullptr;
+	}
 }
 
 void Render::CleanupDevice()
 {
-    CleanupRenderTarget();
+	CleanupRenderTarget();
 
-    if (Data::SwapChain)
-    {
-        Data::SwapChain->Release();
-        Data::SwapChain = nullptr;
-    }
+	if (Data::SwapChain)
+	{
+		Data::SwapChain->Release();
+		Data::SwapChain = nullptr;
+	}
 
-    if (Data::DeviceContext)
-    {
-        Data::DeviceContext->Release();
-        Data::DeviceContext = nullptr;
-    }
+	if (Data::DeviceContext)
+	{
+		Data::DeviceContext->Release();
+		Data::DeviceContext = nullptr;
+	}
 
-    if (Data::Device)
-    {
-        Data::Device->Release();
-        Data::Device = nullptr;
-    }
+	if (Data::Device)
+	{
+		Data::Device->Release();
+		Data::Device = nullptr;
+	}
 }
 
 void Render::Loop() {
@@ -81,12 +80,19 @@ void Render::Loop() {
 	RegisterClassExW(&wc);
 
 	const wchar_t* windowName = L"AppWindow";
-	Data::MainWindow = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, windowName, WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, NULL, NULL, wc.hInstance, NULL);
+	Data::MainWindow = CreateWindowExW(
+		WS_EX_APPWINDOW,
+		wc.lpszClassName,
+		windowName,
+		WS_OVERLAPPEDWINDOW,
+		0, 0, 0, 0,
+		NULL, NULL, wc.hInstance, NULL
+	);
 
 	if (!CreateDevice()) {
 		CleanupDevice();
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
-		MessageBoxW(nullptr, L"Failed to create device!", L"Fatal error", MB_ICONERROR);
+		MessageBoxW(nullptr, L"failed to create device!", L"fatal error", MB_ICONERROR);
 		return;
 	}
 
@@ -112,11 +118,6 @@ void Render::Loop() {
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	const HMONITOR monitor = MonitorFromWindow(Data::MainWindow, MONITOR_DEFAULTTONEAREST);
-	MONITORINFO info = {};
-	info.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfoW(monitor, &info);
-
 	io.IniFilename = nullptr;
 	io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\segoeui.ttf)", 17);
 
@@ -125,13 +126,38 @@ void Render::Loop() {
 
 	Manager::InitDefault();
 
+	if (ImGui::GetMainViewport() && ImGui::GetMainViewport()->PlatformHandle)
+	{
+		HWND viewportHwnd = (HWND)ImGui::GetMainViewport()->PlatformHandle;
+		LONG_PTR currentStyle = GetWindowLongPtr(viewportHwnd, GWL_STYLE);
+		LONG_PTR currentExStyle = GetWindowLongPtr(viewportHwnd, GWL_EXSTYLE);
+
+		currentStyle |= WS_OVERLAPPEDWINDOW;
+		currentExStyle |= WS_EX_APPWINDOW;
+		currentExStyle &= ~WS_EX_TOOLWINDOW;
+
+		SetWindowLongPtr(viewportHwnd, GWL_STYLE, currentStyle);
+		SetWindowLongPtr(viewportHwnd, GWL_EXSTYLE, currentExStyle);
+
+		SetWindowPos(viewportHwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	}
+
 	while (!Global::ShouldExit) {
 		MSG msg;
+		bool gotMessage = false;
 		while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			gotMessage = true;
 			if (msg.message == WM_QUIT)
 				Global::ShouldExit = true;
+		}
+
+		if (Global::ShouldExit)
+			break;
+
+		if (!gotMessage) {
+			Sleep(1);
 		}
 
 		ImGui_ImplDX11_NewFrame();
@@ -147,6 +173,7 @@ void Render::Loop() {
 		const float clearColorWithAlpha[4] = { clearColor.x * clearColor.w, clearColor.y * clearColor.w,clearColor.z * clearColor.w,clearColor.w };
 		Data::DeviceContext->OMSetRenderTargets(1, &Data::RenderTargetView, nullptr);
 		Data::DeviceContext->ClearRenderTargetView(Data::RenderTargetView, clearColorWithAlpha);
+
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -166,33 +193,33 @@ void Render::Loop() {
 	UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
-
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 LRESULT WINAPI Render::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        return true;
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return true;
 
-    switch (msg)
-    {
-    case WM_SIZE:
-        if (Data::Device != nullptr && wParam != SIZE_MINIMIZED)
-        {
-            CleanupRenderTarget();
-            Data::SwapChain->ResizeBuffers(0, LOWORD(lParam), HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-            CreateRenderTarget();
-        }
-        return 0;
-    case WM_SYSCOMMAND:
-        if ((wParam & 0xfff0) == SC_KEYMENU)
-            return 0;
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    default:
-        break;
-    }
+	switch (msg)
+	{
+	case WM_SIZE:
+		if (Data::Device != nullptr && wParam != SIZE_MINIMIZED)
+		{
+			CleanupRenderTarget();
+			Data::SwapChain->ResizeBuffers(0, LOWORD(lParam), HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+			CreateRenderTarget();
+		}
+		return 0;
+	case WM_SYSCOMMAND:
+		if ((wParam & 0xfff0) == SC_KEYMENU)
+			return 0;
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	default:
+		break;
+	}
 
-    return DefWindowProc(hWnd, msg, wParam, lParam);
+	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
